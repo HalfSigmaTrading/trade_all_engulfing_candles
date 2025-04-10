@@ -1,0 +1,60 @@
+//@version=5
+strategy("trade all Engulfing Candles", overlay=true, initial_capital=20000, default_qty_type=strategy.fixed, default_qty_value=1, margin_long=0, margin_short=0)
+
+sl = input.float(20, "Stop Loss (handles)")
+longs_allowed = input.bool(false, "LONGs allowed", group="Fixed profit taking")
+shorts_allowed =input.bool(true, "SHORTs allowed", group="Fixed profit taking")
+drawRWR = input.bool(true, "Show SL and TP on chart", group="Fixed profit taking")
+
+// Vérifier qu'aucun trade n'est en cours
+noTrade = strategy.position_size == 0
+
+// Conditions pour un scénario BULLISH -> SHORT
+bullish_c1 = close[1] > open[1]
+bearish_c0 = (close < open) and high > high[1] and (close < low[1])
+shortEntry = bullish_c1 and bearish_c0 and noTrade and shorts_allowed
+
+// Conditions pour un scénario BEARISH -> LONG
+bearish_c1 = close[1] < open[1]
+bullish_c0 = (close > open) and (low < low[1]) and (close > high[1])
+longEntry = bearish_c1 and bullish_c0 and noTrade and longs_allowed
+
+tp = high-low
+
+// Définition des targets et SL
+point = syminfo.mintick * 4  // Ajustement en fonction de l'échelle de l'actif
+longTP = close + tp * point
+longSL = close - sl * point
+shortTP = close - tp * point
+shortSL = close + sl * point
+
+var float entryPrice = 0
+var float TP_to_show = 0
+var float SL_to_show = 0
+
+// Placer les ordres
+if shortEntry //and canTrade
+    strategy.order("Short", strategy.short, qty=1, limit=close)
+    strategy.exit("Short Exit", from_entry="Short", stop=shortSL, limit=shortTP)
+    label.new(bar_index, high + 1, text="Short", color=color.red, textcolor=color.white, style=label.style_label_down)
+    entryPrice := close
+    TP_to_show := shortTP
+    SL_to_show := shortSL
+    if drawRWR // Stop Zone (Red) and Target Zone (Green)
+        box.new(left=bar_index, right=bar_index + 8, top=SL_to_show, bottom=entryPrice, border_color=color.red, bgcolor=color.new(color.red, 80), text="SL: " + str.tostring(SL_to_show-entryPrice), text_size = size.small, text_halign = text.align_right, text_valign = text.align_top)
+        box.new(left=bar_index, right=bar_index + 8, top=entryPrice, bottom=TP_to_show, border_color=color.green, bgcolor=color.new(color.green, 80))
+
+if longEntry //and canTrade
+    strategy.order("Long", strategy.long, qty=1, limit=close)
+    strategy.exit("Long Exit", from_entry="Long", stop=longSL, limit=longTP)
+    label.new(bar_index, low - 1, text="Long", color=color.green, textcolor=color.white, style=label.style_label_up)
+    entryPrice := close
+    TP_to_show := shortTP
+    SL_to_show := shortSL
+
+plot(entryPrice, title="Entry Price", color = color.new(color.white, 20), display = display.status_line)
+plot(TP_to_show, title="Take Profit", color = color.new(color.white, 20), display = display.status_line)
+plot(SL_to_show, title="Stop Loss", color = color.new(color.white, 20), display = display.status_line)
+
+// Plot current position
+bgcolor(strategy.position_size > 0 ? color.new(color.green, 90) : strategy.position_size < 0 ? color.new(color.red, 90) : na)
