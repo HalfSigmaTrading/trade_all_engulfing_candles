@@ -6,3 +6,7 @@ NEeed to take low risk when you see the win rate
 
 Long term backtesting is ok because the RWR is > 1
 ![image](https://github.com/user-attachments/assets/7b479347-2e92-4b67-a243-ff3a6d76fddf)
+
+
+Ideas:
+  - I need To check instead of seeling after big candle down, I buy at close with TP at middle of the impulsive candle
